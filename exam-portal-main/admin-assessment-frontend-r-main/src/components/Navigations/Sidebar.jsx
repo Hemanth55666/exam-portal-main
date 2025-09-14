@@ -1,17 +1,21 @@
 import { Link, useLocation } from "react-router-dom";
-import { DashboardIcon, CreateTestIcon, ManageTestIcon, } from "../Elements/Icons";
+import { DashboardIcon, CreateTestIcon, ManageTestIcon, LeaderboardIcon } from "../Elements/Icons";
+import { useAuth } from "../../contexts/AuthContext";
 
 const navItems = [
   { label: "Dashboard", to: "/" },
   { label: "Create Test", to: "/create-test" },
-  // { label: "Manage Tests", to: "http://localhost:5173/MyTests", external: true },
-  { label: "Manage Tests", to: "/mytests" },
+  { label: "Manage Tests", to: "/manage-tests" },
+  { label: "Manage Questions", to: "/manage-questions" },
+  { label: "Leaderboard", to: "/leaderboard" },
 ];
 
 const iconMap = {
   Dashboard: <DashboardIcon className="w-5 h-5 shrink-0" />,
   "Create Test": <CreateTestIcon className="w-5 h-5 shrink-0" />,
   "Manage Tests": <ManageTestIcon className="w-5 h-5 shrink-0" />,
+  "Manage Questions": <ManageTestIcon className="w-5 h-5 shrink-0" />,
+  Leaderboard: <LeaderboardIcon className="w-5 h-5 shrink-0" />,
 };
 
 function NavItem({ label, to, external = false, isActive, isCollapsed }) {
@@ -45,6 +49,7 @@ function NavItem({ label, to, external = false, isActive, isCollapsed }) {
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   const location = useLocation();
+  const { user } = useAuth();
 
   return (
     <aside
@@ -87,6 +92,16 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
           </span>
         )}
       </div>
+
+      {/* Welcome message for logged-in user */}
+      {user && !isCollapsed && (
+        <div className="bg-[#062B5B] rounded-lg p-3 mb-4 border border-[#0A4CA4]">
+          <div className="text-xs text-gray-300 mb-1">Welcome back,</div>
+          <div className="font-semibold text-white text-sm truncate">
+            {user.username}
+          </div>
+        </div>
+      )}
 
       <nav className="w-full">
         <ul className="space-y-3">

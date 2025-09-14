@@ -1,7 +1,8 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { API_CONFIG } from "../config/api";
 
-const baseUrl = "http://localhost:4000/api";
+const baseUrl = API_CONFIG.API_BASE;
 
 const tabs = ["Details", "Questions", "Assign Students"];
 
@@ -35,11 +36,30 @@ export default function TestDetailsPage() {
     };
 
     const updateTest = async () => {
-        await fetch(`${baseUrl}/tests/${testId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(test),
-        });
+        try {
+            const response = await fetch(`${baseUrl}/tests/${testId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    testName: test.testName,
+                    description: test.description
+                }),
+            });
+
+            if (response.ok) {
+                alert("Test updated successfully!");
+                // Reload the test data to reflect changes
+                const updatedRes = await fetch(`${baseUrl}/tests/${testId}`);
+                const updatedData = await updatedRes.json();
+                setTest(updatedData);
+            } else {
+                const errorData = await response.text();
+                alert(`Failed to update test: ${errorData}`);
+            }
+        } catch (error) {
+            console.error("Error updating test:", error);
+            alert(`Error updating test: ${error.message}`);
+        }
     };
 
     const toggleStudent = (studentId) => {

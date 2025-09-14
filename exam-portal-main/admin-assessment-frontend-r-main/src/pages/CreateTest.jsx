@@ -1,14 +1,27 @@
 import { useState, useRef } from "react";
 import { UploadCloud } from "lucide-react";
+import { buildApiUrl, API_CONFIG } from "../config/api";
+import { authenticatedFetch } from "../utils/api";
 
-const CATEGORY_OPTIONS = ["Coding", "Math", "Behavioral", "Aptitude"];
+const CATEGORY_OPTIONS = ["Coding", "Aptitude", "Reasoning", "Verbal"];
 
 export default function CreateTest() {
   const [testName, setTestName] = useState("");
   const [questionsText, setQuestionsText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState("");
+  const [selectedQuestionCount, setSelectedQuestionCount] = useState(0);
   const fileInputRef = useRef(null);
+
+  // Helper function to randomly shuffle an array
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
 
   const parseQuestions = (text) => {
     const lines = text.trim().split('\n').filter(line => line.trim());
@@ -58,7 +71,18 @@ export default function CreateTest() {
       i++;
     }
 
-    return parsedQuestions.map(q =>
+    // Randomly select 25 questions from the parsed questions
+    const totalQuestions = parsedQuestions.length;
+    let selectedQuestions = parsedQuestions;
+    
+    if (totalQuestions > 25) {
+      selectedQuestions = shuffleArray(parsedQuestions).slice(0, 25);
+      console.log(`Selected 25 random questions from ${totalQuestions} total questions`);
+    } else {
+      console.log(`Using all ${totalQuestions} questions (less than 25 available)`);
+    }
+
+    return selectedQuestions.map(q =>
       `${q.text}(${q.options.join(",")})[${q.answer}]`
     ).join("\n");
   };
@@ -72,7 +96,20 @@ export default function CreateTest() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result;
-      setQuestionsText(parseQuestions(content));
+      const parsedContent = parseQuestions(content);
+      setQuestionsText(parsedContent);
+      
+      // Count the number of questions in the parsed content
+      const questionCount = parsedContent.split('\n').filter(line => line.trim()).length;
+      setSelectedQuestionCount(questionCount);
+      
+      if (questionCount === 25) {
+        alert(`File uploaded successfully! 25 questions have been randomly selected from your file.`);
+      } else if (questionCount > 0) {
+        alert(`File uploaded successfully! ${questionCount} questions processed (all available questions used as total was less than 25).`);
+      } else {
+        alert("File uploaded but no valid questions were found. Please check the format.");
+      }
     };
     reader.onerror = () => {
       alert("Error reading file");
@@ -93,9 +130,8 @@ export default function CreateTest() {
     };
 
     try {
-      const response = await fetch("http://localhost:4000/api/tests/create", {
+      const response = await authenticatedFetch(buildApiUrl(API_CONFIG.ENDPOINTS.TESTS.CREATE), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -105,6 +141,7 @@ export default function CreateTest() {
       setQuestionsText("");
       setSelectedCategory("");
       setUploadedFileName("");
+      setSelectedQuestionCount(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error("Error:", error);
@@ -159,6 +196,9 @@ export default function CreateTest() {
           <UploadCloud className="w-10 h-10 text-indigo-500 mb-3" />
           <p className="font-medium text-gray-700">Click to upload or drag and drop</p>
           <p className="text-sm text-gray-500">Supported: .txt, .docx</p>
+          <p className="text-xs text-blue-600 mt-2 font-medium">
+            📝 Note: Only 25 questions will be randomly selected from your file
+          </p>
           <input
             type="file"
             accept=".txt,.docx"
@@ -169,9 +209,12 @@ export default function CreateTest() {
         </div>
 
         {uploadedFileName && (
-          <p className="text-sm text-center text-gray-600">
-            Uploaded file: <span className="font-semibold">{uploadedFileName}</span>
-          </p>
+          <div className="text-sm text-center text-gray-600 space-y-1">
+            <p>Uploaded file: <span className="font-semibold">{uploadedFileName}</span></p>
+            <p className="text-green-600 font-medium">
+              ✅ {selectedQuestionCount} questions selected for the test
+            </p>
+          </div>
         )}
 
 
