@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
 
 const studentSchema = new mongoose.Schema({
   rollno:   { type: String, required: true, unique: true },
@@ -10,9 +9,10 @@ const studentSchema = new mongoose.Schema({
   branch:   { type: String, required: true },
   section:  { type: String, required: true },
   semester: { type: Number, required: true },
+  totalmarks: { type: Number, default: 0 }, // Total marks scored across all tests
   assignedTests: [{
     testId:      { type: mongoose.Schema.Types.ObjectId, ref: 'Test', required: true },
-    status:      { type: String, enum: ['pending', 'completed', 'in-progress'], default: 'pending' },
+    status:      { type: String, enum: ['pending', 'completed', 'in-progress', 'writing'], default: 'pending' },
     marks:       { type: Map, of: Number, default: {}, required: function () { return this.status === 'completed'; } },
     submittedAt: { type: Date, required: function () { return this.status === 'completed'; } },
     start:       { type: Date, required: false },
@@ -20,21 +20,9 @@ const studentSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
-// Password Hashing
-studentSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  try {
-    const salt = await bcrypt.genSalt();
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    return next(error);
-  }
-});
-
-// Compare Password
+// Compare Password - Simple string comparison (no hashing)
 studentSchema.methods.comparePassword = async function (password) {
-  return bcrypt.compare(password, this.password);
+  return password === this.password;
 };
 
 // Dynamic model creation: only year-based collections
